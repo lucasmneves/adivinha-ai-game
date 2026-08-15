@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Combo Hunter</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="game">
+    <header class="topbar">
+      <h1>🎯 Combo Hunter</h1>
+      <p class="subtitle">Acerte o número escondido. Acerte rápido para acender o combo!</p>
+    </header>
+
+    <div class="stats">
+      <div class="stat">
+        <span class="stat-label">Pontuação</span>
+        <span class="stat-value" id="score">0</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">Recorde</span>
+        <span class="stat-value" id="best">0</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">Nível</span>
+        <span class="stat-value" id="level">1</span>
+      </div>
+      <div class="stat combo-stat" id="comboStat">
+        <span class="stat-label">Combo</span>
+        <span class="stat-value" id="combo">x1</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">Vidas</span>
+        <span class="stat-value" id="lives">❤️❤️❤️</span>
+      </div>
+    </div>
+
+    <main class="board">
+      <p class="hint" id="rangeHint">Escolha um número entre 1 e 50</p>
+      <p class="feedback" id="feedback">Faça seu primeiro palpite!</p>
+
+      <form id="guessForm" class="guess-form" autocomplete="off">
+        <input
+          type="number"
+          id="guessInput"
+          placeholder="?"
+          inputmode="numeric"
+          autofocus
+        />
+        <button type="submit" id="guessBtn">Chutar</button>
+      </form>
+
+      <div class="attempts" id="attempts"></div>
+
+      <ol class="history" id="history"></ol>
+    </main>
+
+    <div class="overlay" id="overlay">
+      <div class="overlay-card">
+        <h2 id="overlayTitle">Game Over</h2>
+        <p id="overlayText">Pontuação final: 0</p>
+        <button id="restartBtn">Jogar de novo</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
