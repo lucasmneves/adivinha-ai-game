@@ -24,10 +24,6 @@ const els = {
 
 let state = {};
 
-function rangeForLevel(level) {
-  return 50 + (level - 1) * 25;
-}
-
 function loadBest() {
   return Number(localStorage.getItem("comboHunterBest") || 0);
 }
@@ -70,22 +66,9 @@ function render() {
   els.lives.textContent = HEART_FULL.repeat(state.lives) + HEART_EMPTY.repeat(STARTING_LIVES - state.lives);
 }
 
-function temperature(guess, secret, range) {
-  const distance = Math.abs(guess - secret);
-  const pct = distance / range;
-  if (pct === 0) return "🎯";
-  if (pct < 0.03) return "🔥 muito quente";
-  if (pct < 0.08) return "🌡️ quente";
-  if (pct < 0.18) return "🙂 morno";
-  if (pct < 0.35) return "❄️ frio";
-  return "🧊 muito frio";
-}
-
 function endRound(won) {
   if (won) {
-    const range = rangeForLevel(state.level);
-    const base = (MAX_ATTEMPTS - state.attemptsUsed + 1) * 10;
-    const points = Math.round(base * (1 + state.combo * 0.25));
+    const points = roundPoints(state.attemptsUsed, state.combo, MAX_ATTEMPTS);
     state.score += points;
 
     if (state.attemptsUsed <= 3) {
