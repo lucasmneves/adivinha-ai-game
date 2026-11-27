@@ -1,10 +1,9 @@
 const test = require("node:test");
 const assert = require("node:assert");
 const fs = require("node:fs");
-const path = require("node:path");
 const vm = require("node:vm");
 
-const root = path.join(__dirname, "..");
+const root = __dirname + "/../";
 const ELEMENT_IDS = [
   "score", "best", "level", "combo", "comboStat", "lives", "rangeHint", "feedback",
   "guessForm", "guessInput", "attempts", "history", "overlay", "overlayTitle",
@@ -17,7 +16,14 @@ function createElement(tag) {
   const listeners = {};
   const el = {
     tagName: tag.toUpperCase(),
-    textContent: "",
+    _textContent: "",
+    get textContent() {
+      return this._textContent;
+    },
+    // Como no navegador, textContent sempre vira string.
+    set textContent(value) {
+      this._textContent = String(value);
+    },
     value: "",
     disabled: false,
     scrollTop: 0,
@@ -65,7 +71,7 @@ function createElement(tag) {
   return el;
 }
 
-function loadGame({ storedBest } = {}) {
+function loadGame({ storedBest, random = 0 } = {}) {
   const elements = Object.fromEntries(ELEMENT_IDS.map((id) => [id, createElement("div")]));
   const storage = new Map();
   if (storedBest !== undefined) storage.set("comboHunterBest", String(storedBest));
@@ -83,10 +89,10 @@ function loadGame({ storedBest } = {}) {
     setTimeout: (fn) => timers.push(fn),
   });
 
-  // Número secreto sempre 1: 1 + floor(0 * range).
-  vm.runInContext("Math.random = () => 0;", context);
+  // Segredo = 1 + floor(random * range); com o padrão 0 o segredo é sempre 1.
+  vm.runInContext(`Math.random = () => ${random};`, context);
   for (const file of ["game-logic.js", "script.js"]) {
-    vm.runInContext(fs.readFileSync(path.join(root, file), "utf8"), context, { filename: file });
+    vm.runInContext(fs.readFileSync(root + file, "utf8"), context, { filename: file });
   }
 
   const game = {
@@ -109,9 +115,9 @@ function loadGame({ storedBest } = {}) {
 
 test("script.js carrega e renderiza o estado inicial", () => {
   const { els } = loadGame();
-  assert.strictEqual(els.score.textContent, 0);
-  assert.strictEqual(els.best.textContent, 0);
-  assert.strictEqual(els.level.textContent, 1);
+  assert.strictEqual(els.score.textContent, "0");
+  assert.strictEqual(els.best.textContent, "0");
+  assert.strictEqual(els.level.textContent, "1");
   assert.strictEqual(els.combo.textContent, "x1");
   assert.strictEqual(els.lives.textContent, "❤️❤️❤️");
   assert.strictEqual(els.rangeHint.textContent, "Escolha um número entre 1 e 50");
@@ -121,14 +127,16 @@ test("script.js carrega e renderiza o estado inicial", () => {
 
 test("recorde salvo no localStorage aparece ao iniciar", () => {
   const { els } = loadGame({ storedBest: 123 });
-  assert.strictEqual(els.best.textContent, 123);
+  assert.strictEqual(els.best.textContent, "123");
 });
 
 test("palpite inválido não consome tentativa", () => {
   const game = loadGame();
   for (const value of ["", "abc", 0, 51]) {
+    game.els.guessInput.classList.remove("shake");
     game.guess(value);
     assert.strictEqual(game.els.feedback.textContent, "Digite um número entre 1 e 50", `palpite ${JSON.stringify(value)}`);
+    assert.ok(game.els.guessInput.classList.contains("shake"), `shake no palpite ${JSON.stringify(value)}`);
   }
   assert.strictEqual(game.els.history.children.length, 0);
   assert.ok(game.els.attempts.children.every((dot) => !dot.className.includes("used")));
@@ -140,16 +148,27 @@ test("palpite errado dá dica de direção e marca a tentativa", () => {
   assert.match(game.els.feedback.textContent, /^Tente um número menor — /);
   assert.strictEqual(game.els.history.children.length, 1);
   assert.strictEqual(game.els.attempts.children[0].className, "attempt-dot used");
+  assert.match(game.els.history.children[0].innerHTML, /⬇️ menor/);
+});
+
+test("palpite abaixo do segredo pede um número maior", () => {
+  // random 0.5 no nível 1 (range 50): segredo = 1 + floor(25) = 26.
+  const game = loadGame({ random: 0.5 });
+  game.guess(10);
+  assert.match(game.els.feedback.textContent, /^Tente um número maior — /);
+  assert.strictEqual(game.els.feedback.className, "feedback up");
+  assert.strictEqual(game.els.history.children.length, 1);
+  assert.match(game.els.history.children[0].innerHTML, /⬆️ maior/);
 });
 
 test("acerto soma pontos, sobe combo e nível e salva o recorde", () => {
   const game = loadGame();
   game.guess(1);
   assert.strictEqual(game.els.feedback.textContent, "🎯 Acertou! +60 pontos");
-  assert.strictEqual(game.els.score.textContent, 60);
+  assert.strictEqual(game.els.score.textContent, "60");
   assert.strictEqual(game.els.combo.textContent, "x2");
   assert.ok(game.els.comboStat.classList.contains("hot"));
-  assert.strictEqual(game.els.level.textContent, 2);
+  assert.strictEqual(game.els.level.textContent, "2");
   assert.strictEqual(game.storage.get("comboHunterBest"), "60");
 
   game.flushTimers();
@@ -158,7 +177,7 @@ test("acerto soma pontos, sobe combo e nível e salva o recorde", () => {
 
   // Segundo acerto com combo 1: 60 * 1.25 = 75.
   game.guess(1);
-  assert.strictEqual(game.els.score.textContent, 135);
+  assert.strictEqual(game.els.score.textContent, "135");
   assert.strictEqual(game.els.combo.textContent, "x3");
 });
 
@@ -166,10 +185,12 @@ test("esgotar as tentativas custa uma vida e zera o combo", () => {
   const game = loadGame();
   game.guess(1);
   game.flushTimers();
-  game.loseRound();
+  for (let i = 0; i < 6; i++) game.guess(2);
+  assert.strictEqual(game.els.feedback.textContent, "💥 Fim das tentativas! Era 1.");
+  game.flushTimers();
   assert.strictEqual(game.els.lives.textContent, "❤️❤️🖤");
   assert.strictEqual(game.els.combo.textContent, "x1");
-  assert.strictEqual(game.els.level.textContent, 2);
+  assert.strictEqual(game.els.level.textContent, "2");
   assert.strictEqual(game.els.history.children.length, 0);
 });
 
@@ -180,12 +201,13 @@ test("perder todas as vidas mostra o fim de jogo e reiniciar volta ao início", 
   for (let i = 0; i < 3; i++) game.loseRound();
 
   assert.ok(game.els.overlay.classList.contains("show"));
+  assert.strictEqual(game.els.overlayTitle.textContent, "Fim de jogo");
   assert.strictEqual(game.els.overlayText.textContent, "Pontuação final: 60 • Nível alcançado: 2 • Recorde: 60");
 
   game.els.restartBtn.dispatch("click");
   assert.strictEqual(game.els.overlay.classList.contains("show"), false);
-  assert.strictEqual(game.els.score.textContent, 0);
-  assert.strictEqual(game.els.best.textContent, 60);
-  assert.strictEqual(game.els.level.textContent, 1);
+  assert.strictEqual(game.els.score.textContent, "0");
+  assert.strictEqual(game.els.best.textContent, "60");
+  assert.strictEqual(game.els.level.textContent, "1");
   assert.strictEqual(game.els.lives.textContent, "❤️❤️❤️");
 });
