@@ -90,3 +90,14 @@ test("roundPoints arredonda o resultado", () => {
   assert.strictEqual(roundPoints(6, 1, 6), 13);
   assert.strictEqual(roundPoints(5, 3, 6), 35);
 });
+
+test("roundPoints nos extremos do contrato de attemptsUsed", () => {
+  const maxAttempts = 6;
+  // attemptsUsed = 1 → máximo de pontos
+  assert.strictEqual(roundPoints(1, 0, maxAttempts), 60);
+  // attemptsUsed = maxAttempts → mínimo positivo
+  assert.strictEqual(roundPoints(maxAttempts, 0, maxAttempts), 10);
+  // attemptsUsed = maxAttempts + 1 → fora do contrato: base 0 → 0 pontos
+  assert.strictEqual(roundPoints(maxAttempts + 1, 0, maxAttempts), 0);
+  assert.strictEqual(roundPoints(maxAttempts + 1, 3, maxAttempts), 0);
+});
