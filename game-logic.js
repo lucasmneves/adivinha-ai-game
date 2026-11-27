@@ -23,7 +23,9 @@ function temperature(guess, secret, range) {
  * base fica ≤ 0 (o jogo nunca chama a função assim).
  *
  * @param {number} attemptsUsed Tentativas usadas para acertar (1..maxAttempts).
- * @param {number} combo Número de acertos seguidos anteriores (≥ 0).
+ * @param {number} combo Combo atual, antes desta rodada (≥ 0). Aumenta 1 a
+ *   cada acerto em até 3 tentativas e volta a 0 quando o acerto leva mais de
+ *   3 tentativas (ou quando a rodada é perdida).
  * @param {number} maxAttempts Máximo de tentativas permitidas na rodada.
  * @returns {number} Pontos da rodada (inteiro).
  */
