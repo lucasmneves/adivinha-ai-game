@@ -34,6 +34,41 @@ test("temperature respeita os limites de cada faixa", () => {
   }
 });
 
+function assertBoundaries(range, secret, cases) {
+  for (const [distance, expected] of cases) {
+    assert.strictEqual(temperature(secret + distance, secret, range), expected, `range ${range}, distância +${distance}`);
+    assert.strictEqual(temperature(secret - distance, secret, range), expected, `range ${range}, distância -${distance}`);
+  }
+}
+
+test("temperature respeita os cortes com range 50", () => {
+  // cortes: 0.03 → 1.5, 0.08 → 4, 0.18 → 9, 0.35 → 17.5
+  assertBoundaries(50, 25, [
+    [1, "🔥 muito quente"],
+    [2, "🌡️ quente"],
+    [3, "🌡️ quente"],
+    [4, "🙂 morno"],
+    [8, "🙂 morno"],
+    [9, "❄️ frio"],
+    [17, "❄️ frio"],
+    [18, "🧊 muito frio"],
+  ]);
+});
+
+test("temperature respeita os cortes com range 75", () => {
+  // cortes: 0.03 → 2.25, 0.08 → 6, 0.18 → 13.5, 0.35 → 26.25
+  assertBoundaries(75, 38, [
+    [2, "🔥 muito quente"],
+    [3, "🌡️ quente"],
+    [5, "🌡️ quente"],
+    [6, "🙂 morno"],
+    [13, "🙂 morno"],
+    [14, "❄️ frio"],
+    [26, "❄️ frio"],
+    [27, "🧊 muito frio"],
+  ]);
+});
+
 test("temperature é relativa ao tamanho do intervalo", () => {
   assert.strictEqual(temperature(6, 1, 50), "🙂 morno");
   assert.strictEqual(temperature(6, 1, 200), "🔥 muito quente");
